@@ -1,0 +1,44 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/bird.gd" id="1_bird_script"]
+[ext_resource type="Script" path="res://scripts/pipe_spawner.gd" id="2_spawner_script"]
+[ext_resource type="Script" path="res://scripts/ui_manager.gd" id="3_ui_script"]
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="4_manager_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_bird"]
+radius = 18.0
+
+[node name="Main" type="Node2D"]
+
+[node name="Bird" type="CharacterBody2D" parent="."]
+position = Vector2(240, 320)
+script = ExtResource("1_bird_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bird"]
+shape = SubResource("CircleShape2D_bird")
+
+[node name="Visual" type="Polygon2D" parent="Bird"]
+color = Color(0.980392, 0.854902, 0.301961, 1)
+polygon = PackedVector2Array(24, 0, -12, -14, -12, 14)
+
+[node name="PipeSpawner" type="Node2D" parent="."]
+script = ExtResource("2_spawner_script")
+
+[node name="UI" type="CanvasLayer" parent="."]
+script = ExtResource("3_ui_script")
+score_label_path = NodePath("ScoreLabel")
+bird_path = NodePath("../Bird")
+pipe_spawner_path = NodePath("../PipeSpawner")
+
+[node name="ScoreLabel" type="Label" parent="UI"]
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 260.0
+offset_bottom = 88.0
+theme_override_font_sizes/font_size = 42
+text = "Score: 0"
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("4_manager_script")
+ui_manager_path = NodePath("../UI")
+bird_path = NodePath("../Bird")

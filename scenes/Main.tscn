@@ -1,0 +1,87 @@
+[gd_scene format=3 uid="uid://sr41w4hemr6b"]
+
+[ext_resource type="Script" path="res://scripts/game.gd" id="1_7cbgs"]
+[ext_resource type="Script" uid="uid://dr0h5konkwvcu" path="res://scripts/bird.gd" id="2_gw8cu"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_wx3k0"]
+radius = 14.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j2ovw"]
+size = Vector2(1200, 96)
+
+[node name="Main" type="Node2D" unique_id=1050604031]
+script = ExtResource("1_7cbgs")
+
+[node name="BackgroundContainer" type="Node2D" parent="." unique_id=941837156]
+
+[node name="BgA" type="Polygon2D" parent="BackgroundContainer" unique_id=1447400536]
+color = Color(0.486275, 0.760784, 0.964706, 1)
+polygon = PackedVector2Array(0, 0, 1200, 0, 1200, 720, 0, 720)
+
+[node name="BgB" type="Polygon2D" parent="BackgroundContainer" unique_id=78054867]
+position = Vector2(1200, 0)
+color = Color(0.466667, 0.729412, 0.929412, 1)
+polygon = PackedVector2Array(0, 0, 1200, 0, 1200, 720, 0, 720)
+
+[node name="Bird" type="CharacterBody2D" parent="." unique_id=500068041]
+position = Vector2(120, 280)
+script = ExtResource("2_gw8cu")
+
+[node name="Camera2D" type="Camera2D" parent="Bird" unique_id=211143329]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bird" unique_id=1417090227]
+shape = SubResource("CircleShape2D_wx3k0")
+
+[node name="BodyVisual" type="Polygon2D" parent="Bird" unique_id=1400526171]
+color = Color(1, 0.886275, 0.294118, 1)
+polygon = PackedVector2Array(-16, -12, 16, -8, 16, 10, -16, 12)
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=1006155458]
+position = Vector2(0, 620)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=1549330725]
+position = Vector2(600, 48)
+shape = SubResource("RectangleShape2D_j2ovw")
+
+[node name="GroundVisual" type="Polygon2D" parent="Ground" unique_id=847258773]
+color = Color(0.470588, 0.321569, 0.160784, 1)
+polygon = PackedVector2Array(0, 0, 1200, 0, 1200, 96, 0, 96)
+
+[node name="PipeContainer" type="Node2D" parent="." unique_id=359084560]
+
+[node name="Spawner" type="Timer" parent="." unique_id=1567253606]
+wait_time = 1.2
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=678351456]
+
+[node name="ScoreLabel" type="Label" parent="UI" unique_id=487545759]
+offset_left = 214.0
+offset_top = 20.0
+offset_right = 280.0
+offset_bottom = 77.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 52
+text = "0"
+
+[node name="MessageLabel" type="Label" parent="UI" unique_id=731939399]
+offset_left = 74.0
+offset_top = 146.0
+offset_right = 416.0
+offset_bottom = 276.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "Tap Anywhere to Jump"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="DebugLabel" type="Label" parent="UI" unique_id=594939319]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 520.0
+offset_bottom = 260.0
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 16
+text = "debug"
+autowrap_mode = 2

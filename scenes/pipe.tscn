@@ -1,0 +1,42 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/pipe.gd" id="1_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_top"]
+size = Vector2(80, 600)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom"]
+size = Vector2(80, 600)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_score"]
+size = Vector2(60, 220)
+
+[node name="Pipe" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="TopPipe" type="Polygon2D" parent="."]
+position = Vector2(0, -360)
+color = Color(0.247059, 0.6, 0.266667, 1)
+polygon = PackedVector2Array(-40, -300, 40, -300, 40, 300, -40, 300)
+
+[node name="TopBody" type="StaticBody2D" parent="."]
+position = Vector2(0, -360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TopBody"]
+shape = SubResource("RectangleShape2D_top")
+
+[node name="BottomPipe" type="Polygon2D" parent="."]
+position = Vector2(0, 360)
+color = Color(0.247059, 0.6, 0.266667, 1)
+polygon = PackedVector2Array(-40, -300, 40, -300, 40, 300, -40, 300)
+
+[node name="BottomBody" type="StaticBody2D" parent="."]
+position = Vector2(0, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BottomBody"]
+shape = SubResource("RectangleShape2D_bottom")
+
+[node name="ScoreZone" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ScoreZone"]
+shape = SubResource("RectangleShape2D_score")
