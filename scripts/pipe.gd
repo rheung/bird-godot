@@ -7,6 +7,7 @@ signal passed
 @export var gap_size: float = 260.0
 @export var pipe_width: float = 80.0
 @export var overscan_height: float = 200.0
+@export var pipe_color: Color = Color(0.247059, 0.6, 0.266667, 1.0)
 
 var _has_scored: bool = false
 var _is_stopped: bool = false
@@ -22,6 +23,7 @@ var _is_stopped: bool = false
 
 func _ready() -> void:
 	add_to_group("pipes")
+	_apply_pipe_color()
 	_layout_to_viewport()
 	get_viewport().size_changed.connect(_layout_to_viewport)
 	if _score_zone != null:
@@ -51,6 +53,19 @@ func _on_score_zone_body_entered(body: Node) -> void:
 
 func set_stopped(stopped: bool) -> void:
 	_is_stopped = stopped
+
+func set_move_speed(new_speed: float) -> void:
+	move_speed = new_speed
+
+func set_pipe_color(new_color: Color) -> void:
+	pipe_color = new_color
+	_apply_pipe_color()
+
+func _apply_pipe_color() -> void:
+	if _top_visual != null:
+		_top_visual.color = pipe_color
+	if _bottom_visual != null:
+		_bottom_visual.color = pipe_color
 
 func _layout_to_viewport() -> void:
 	var viewport := get_viewport()

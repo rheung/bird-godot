@@ -8,12 +8,15 @@ signal pipe_passed
 @export var spawn_y_max: float = 150.0
 @export var pipe_speed: float = 200.0
 @export var vertical_spawn_margin: float = 140.0
+@export var pipe_color: Color = Color(0.247059, 0.6, 0.266667, 1.0)
 
 var _timer: float = 0.0
 var _is_stopped: bool = false
+var _target_pipe_distance: float = 0.0
 
 func _ready() -> void:
 	add_to_group("pipe_spawners")
+	_target_pipe_distance = pipe_speed * spawn_interval
 	randomize()
 	_spawn_pipe()
 
@@ -43,8 +46,12 @@ func _spawn_pipe() -> void:
 	(pipe as Node2D).global_position = Vector2(spawn_x, spawn_y)
 
 	# If the spawned pipe script exposes move_speed, set it from spawner.
-	if pipe.get("move_speed") != null:
+	if pipe.has_method("set_move_speed"):
+		pipe.call("set_move_speed", pipe_speed)
+	elif pipe.get("move_speed") != null:
 		pipe.set("move_speed", pipe_speed)
+	if pipe.has_method("set_pipe_color"):
+		pipe.call("set_pipe_color", pipe_color)
 	if pipe.has_signal("passed"):
 		pipe.passed.connect(_on_pipe_passed)
 
@@ -78,3 +85,12 @@ func _on_pipe_passed() -> void:
 
 func set_stopped(stopped: bool) -> void:
 	_is_stopped = stopped
+
+func apply_difficulty(new_speed: float, new_color: Color) -> void:
+	if new_speed > 0.0:
+		pipe_speed = new_speed
+		if _target_pipe_distance > 0.0:
+			spawn_interval = _target_pipe_distance / pipe_speed
+	pipe_color = new_color
+	get_tree().call_group("pipes", "set_move_speed", pipe_speed)
+	get_tree().call_group("pipes", "set_pipe_color", pipe_color)
