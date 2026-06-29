@@ -235,11 +235,15 @@ func _show_name_prompt() -> void:
 	name_prompt.visible = true
 	name_input.text = ""
 	name_input.max_length = 10
+	name_input.editable = true
+	name_input.virtual_keyboard_enabled = true
 	name_input.grab_focus()
 
 func _hide_name_prompt() -> void:
 	if name_prompt != null:
 		name_prompt.visible = false
+	if name_input != null:
+		name_input.release_focus()
 
 func _on_name_submit_pressed() -> void:
 	_submit_player_name()
@@ -398,6 +402,7 @@ func _is_mobile_like_portrait(viewport_size: Vector2) -> bool:
 
 func _apply_ui_scale(scale_factor: float) -> void:
 	_ui_scale_factor = scale_factor
+	var prompt_scale := clampf(scale_factor * 1.25, 1.0, 2.6)
 
 	if score_label != null:
 		score_label.add_theme_font_size_override("font_size", int(round(_base_score_font_size * scale_factor)))
@@ -408,14 +413,14 @@ func _apply_ui_scale(scale_factor: float) -> void:
 	if congrats_label != null:
 		congrats_label.add_theme_font_size_override("font_size", int(round(_base_congrats_font_size * scale_factor)))
 	if name_prompt_title_label != null:
-		name_prompt_title_label.add_theme_font_size_override("font_size", int(round(_base_name_prompt_title_font_size * scale_factor)))
+		name_prompt_title_label.add_theme_font_size_override("font_size", int(round(_base_name_prompt_title_font_size * prompt_scale)))
 	if name_input != null:
-		name_input.add_theme_font_size_override("font_size", int(round(_base_name_input_font_size * scale_factor)))
-		var input_min_height := maxf(44.0, _base_name_input_min_size.y * scale_factor)
+		name_input.add_theme_font_size_override("font_size", int(round(_base_name_input_font_size * prompt_scale)))
+		var input_min_height := maxf(54.0, _base_name_input_min_size.y * prompt_scale)
 		name_input.custom_minimum_size = Vector2(_base_name_input_min_size.x, input_min_height)
 	if name_submit_button != null:
-		name_submit_button.add_theme_font_size_override("font_size", int(round(_base_name_submit_font_size * scale_factor)))
-		var button_min_height := maxf(48.0, _base_name_submit_min_size.y * scale_factor)
+		name_submit_button.add_theme_font_size_override("font_size", int(round(_base_name_submit_font_size * prompt_scale)))
+		var button_min_height := maxf(58.0, _base_name_submit_min_size.y * prompt_scale)
 		name_submit_button.custom_minimum_size = Vector2(_base_name_submit_min_size.x, button_min_height)
 
 	if leaderboard_panel != null:
@@ -436,10 +441,13 @@ func _apply_ui_scale(scale_factor: float) -> void:
 		congrats_label.offset_bottom = congrats_label.offset_top + clampf(base_congrats_height * scale_factor, base_congrats_height, 140.0)
 
 	if name_prompt != null:
-		name_prompt.offset_left = _base_name_prompt_left * scale_factor
-		name_prompt.offset_top = _base_name_prompt_top * scale_factor
-		name_prompt.offset_right = _base_name_prompt_right * scale_factor
-		name_prompt.offset_bottom = _base_name_prompt_bottom * scale_factor
+		name_prompt.offset_left = _base_name_prompt_left * prompt_scale
+		name_prompt.offset_top = _base_name_prompt_top * prompt_scale
+		name_prompt.offset_right = _base_name_prompt_right * prompt_scale
+		name_prompt.offset_bottom = _base_name_prompt_bottom * prompt_scale
+
+func is_name_prompt_open() -> bool:
+	return name_prompt != null and name_prompt.visible
 
 func _level_up_difficulty() -> void:
 	_current_speed += speed_increase_per_level

@@ -29,6 +29,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if state != GameState.GAME_OVER:
 		return
 
+	# While name entry is open, let UI controls consume touch/keyboard input.
+	if _is_name_prompt_open():
+		return
+
 	if event is InputEventScreenTouch:
 		var touch_event := event as InputEventScreenTouch
 		if touch_event.pressed:
@@ -53,6 +57,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if InputMap.has_action(restart_action) and event.is_action_pressed(restart_action):
 		restart_current_scene()
 		_mark_input_handled_safe()
+
+func _is_name_prompt_open() -> bool:
+	if _ui_manager == null:
+		return false
+	if _ui_manager.has_method("is_name_prompt_open"):
+		return bool(_ui_manager.call("is_name_prompt_open"))
+	return false
 
 func set_game_over() -> void:
 	_set_state(GameState.GAME_OVER)
