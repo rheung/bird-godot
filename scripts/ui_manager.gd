@@ -57,6 +57,9 @@ var _base_score_font_size: int = 34
 var _base_leaderboard_title_font_size: int = 24
 var _base_leaderboard_font_size: int = 20
 var _base_congrats_font_size: int = 22
+var _base_name_prompt_title_font_size: int = 16
+var _base_name_input_font_size: int = 16
+var _base_name_submit_font_size: int = 16
 
 var _base_leaderboard_left: float = -266.0
 var _base_leaderboard_top: float = 20.0
@@ -68,12 +71,21 @@ var _base_congrats_top: float = 232.0
 var _base_congrats_right: float = -12.0
 var _base_congrats_bottom: float = 278.0
 
+var _base_name_prompt_left: float = -140.0
+var _base_name_prompt_top: float = -70.0
+var _base_name_prompt_right: float = 140.0
+var _base_name_prompt_bottom: float = 70.0
+
+var _base_name_input_min_size: Vector2 = Vector2.ZERO
+var _base_name_submit_min_size: Vector2 = Vector2.ZERO
+
 @onready var score_label: Label = get_node_or_null(score_label_path)
 @onready var leaderboard_label: Label = get_node_or_null(leaderboard_label_path)
 @onready var congrats_label: Label = get_node_or_null(congrats_label_path)
 @onready var leaderboard_panel: Control = get_node_or_null("LeaderboardPanel")
 @onready var leaderboard_title_label: Label = get_node_or_null("LeaderboardPanel/MarginContainer/VBoxContainer/LeaderboardTitle")
 @onready var name_prompt: Control = get_node_or_null(name_prompt_path)
+@onready var name_prompt_title_label: Label = get_node_or_null("NamePrompt/MarginContainer/VBoxContainer/NamePromptLabel")
 @onready var name_input: LineEdit = get_node_or_null(name_input_path)
 @onready var name_submit_button: Button = get_node_or_null(name_submit_button_path)
 @onready var bird: Node = get_node_or_null(bird_path)
@@ -354,6 +366,19 @@ func _cache_base_ui_metrics() -> void:
 		_base_congrats_top = congrats_label.offset_top
 		_base_congrats_right = congrats_label.offset_right
 		_base_congrats_bottom = congrats_label.offset_bottom
+	if name_prompt != null:
+		_base_name_prompt_left = name_prompt.offset_left
+		_base_name_prompt_top = name_prompt.offset_top
+		_base_name_prompt_right = name_prompt.offset_right
+		_base_name_prompt_bottom = name_prompt.offset_bottom
+	if name_prompt_title_label != null:
+		_base_name_prompt_title_font_size = int(name_prompt_title_label.get_theme_font_size("font_size"))
+	if name_input != null:
+		_base_name_input_font_size = int(name_input.get_theme_font_size("font_size"))
+		_base_name_input_min_size = name_input.custom_minimum_size
+	if name_submit_button != null:
+		_base_name_submit_font_size = int(name_submit_button.get_theme_font_size("font_size"))
+		_base_name_submit_min_size = name_submit_button.custom_minimum_size
 	if leaderboard_panel != null:
 		_base_leaderboard_left = leaderboard_panel.offset_left
 		_base_leaderboard_top = leaderboard_panel.offset_top
@@ -382,6 +407,16 @@ func _apply_ui_scale(scale_factor: float) -> void:
 		leaderboard_label.add_theme_font_size_override("font_size", int(round(_base_leaderboard_font_size * scale_factor)))
 	if congrats_label != null:
 		congrats_label.add_theme_font_size_override("font_size", int(round(_base_congrats_font_size * scale_factor)))
+	if name_prompt_title_label != null:
+		name_prompt_title_label.add_theme_font_size_override("font_size", int(round(_base_name_prompt_title_font_size * scale_factor)))
+	if name_input != null:
+		name_input.add_theme_font_size_override("font_size", int(round(_base_name_input_font_size * scale_factor)))
+		var input_min_height := maxf(44.0, _base_name_input_min_size.y * scale_factor)
+		name_input.custom_minimum_size = Vector2(_base_name_input_min_size.x, input_min_height)
+	if name_submit_button != null:
+		name_submit_button.add_theme_font_size_override("font_size", int(round(_base_name_submit_font_size * scale_factor)))
+		var button_min_height := maxf(48.0, _base_name_submit_min_size.y * scale_factor)
+		name_submit_button.custom_minimum_size = Vector2(_base_name_submit_min_size.x, button_min_height)
 
 	if leaderboard_panel != null:
 		var base_width := _base_leaderboard_right - _base_leaderboard_left
@@ -399,6 +434,12 @@ func _apply_ui_scale(scale_factor: float) -> void:
 		congrats_label.offset_left = leaderboard_panel.offset_left
 		congrats_label.offset_top = leaderboard_panel.offset_bottom + 12.0
 		congrats_label.offset_bottom = congrats_label.offset_top + clampf(base_congrats_height * scale_factor, base_congrats_height, 140.0)
+
+	if name_prompt != null:
+		name_prompt.offset_left = _base_name_prompt_left * scale_factor
+		name_prompt.offset_top = _base_name_prompt_top * scale_factor
+		name_prompt.offset_right = _base_name_prompt_right * scale_factor
+		name_prompt.offset_bottom = _base_name_prompt_bottom * scale_factor
 
 func _level_up_difficulty() -> void:
 	_current_speed += speed_increase_per_level
