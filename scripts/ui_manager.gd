@@ -398,7 +398,7 @@ func _apply_responsive_ui() -> void:
 	_apply_ui_scale(scale_factor)
 
 func _is_mobile_like_portrait(viewport_size: Vector2) -> bool:
-	return viewport_size.y > viewport_size.x * 1.2 and viewport_size.x < 1500.0
+	return viewport_size.y > viewport_size.x * 1.2 and viewport_size.x < 2200.0
 
 func _apply_ui_scale(scale_factor: float) -> void:
 	_ui_scale_factor = scale_factor
