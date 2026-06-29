@@ -51,10 +51,28 @@ var _congrats_shown: bool = false
 var _congrats_hide_token: int = 0
 var _congrats_audio_player: AudioStreamPlayer
 var _congrats_flash_tween: Tween
+var _ui_scale_factor: float = 1.0
+
+var _base_score_font_size: int = 34
+var _base_leaderboard_title_font_size: int = 24
+var _base_leaderboard_font_size: int = 20
+var _base_congrats_font_size: int = 22
+
+var _base_leaderboard_left: float = -266.0
+var _base_leaderboard_top: float = 20.0
+var _base_leaderboard_right: float = -12.0
+var _base_leaderboard_bottom: float = 220.0
+
+var _base_congrats_left: float = -266.0
+var _base_congrats_top: float = 232.0
+var _base_congrats_right: float = -12.0
+var _base_congrats_bottom: float = 278.0
 
 @onready var score_label: Label = get_node_or_null(score_label_path)
 @onready var leaderboard_label: Label = get_node_or_null(leaderboard_label_path)
 @onready var congrats_label: Label = get_node_or_null(congrats_label_path)
+@onready var leaderboard_panel: Control = get_node_or_null("LeaderboardPanel")
+@onready var leaderboard_title_label: Label = get_node_or_null("LeaderboardPanel/MarginContainer/VBoxContainer/LeaderboardTitle")
 @onready var name_prompt: Control = get_node_or_null(name_prompt_path)
 @onready var name_input: LineEdit = get_node_or_null(name_input_path)
 @onready var name_submit_button: Button = get_node_or_null(name_submit_button_path)
@@ -88,6 +106,10 @@ func _ready() -> void:
 		_current_speed = float(pipe_spawner.get("pipe_speed"))
 	if pipe_colors.is_empty():
 		pipe_colors = [Color(0.247059, 0.6, 0.266667, 1.0)]
+	_cache_base_ui_metrics()
+	_apply_responsive_ui()
+	if not get_viewport().size_changed.is_connected(_on_viewport_size_changed):
+		get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_apply_current_difficulty()
 	_update_score_label()
 	_load_cached_leaderboard()
@@ -315,6 +337,68 @@ func _stop_congrats_flash() -> void:
 func _set_congrats_color(color: Color) -> void:
 	if congrats_label != null:
 		congrats_label.add_theme_color_override("font_color", color)
+
+func _on_viewport_size_changed() -> void:
+	_apply_responsive_ui()
+
+func _cache_base_ui_metrics() -> void:
+	if score_label != null:
+		_base_score_font_size = int(score_label.get("theme_override_font_sizes/font_size"))
+	if leaderboard_title_label != null:
+		_base_leaderboard_title_font_size = int(leaderboard_title_label.get("theme_override_font_sizes/font_size"))
+	if leaderboard_label != null:
+		_base_leaderboard_font_size = int(leaderboard_label.get("theme_override_font_sizes/font_size"))
+	if congrats_label != null:
+		_base_congrats_font_size = int(congrats_label.get("theme_override_font_sizes/font_size"))
+		_base_congrats_left = congrats_label.offset_left
+		_base_congrats_top = congrats_label.offset_top
+		_base_congrats_right = congrats_label.offset_right
+		_base_congrats_bottom = congrats_label.offset_bottom
+	if leaderboard_panel != null:
+		_base_leaderboard_left = leaderboard_panel.offset_left
+		_base_leaderboard_top = leaderboard_panel.offset_top
+		_base_leaderboard_right = leaderboard_panel.offset_right
+		_base_leaderboard_bottom = leaderboard_panel.offset_bottom
+
+func _apply_responsive_ui() -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	if not _is_mobile_like_portrait(viewport_size):
+		_apply_ui_scale(1.0)
+		return
+	var scale_factor := clampf(viewport_size.y / 1280.0, 1.2, 2.0)
+	_apply_ui_scale(scale_factor)
+
+func _is_mobile_like_portrait(viewport_size: Vector2) -> bool:
+	return viewport_size.y > viewport_size.x * 1.2 and viewport_size.x < 1500.0
+
+func _apply_ui_scale(scale_factor: float) -> void:
+	_ui_scale_factor = scale_factor
+
+	if score_label != null:
+		score_label.add_theme_font_size_override("font_size", int(round(_base_score_font_size * scale_factor)))
+	if leaderboard_title_label != null:
+		leaderboard_title_label.add_theme_font_size_override("font_size", int(round(_base_leaderboard_title_font_size * scale_factor)))
+	if leaderboard_label != null:
+		leaderboard_label.add_theme_font_size_override("font_size", int(round(_base_leaderboard_font_size * scale_factor)))
+	if congrats_label != null:
+		congrats_label.add_theme_font_size_override("font_size", int(round(_base_congrats_font_size * scale_factor)))
+
+	if leaderboard_panel != null:
+		var base_width := _base_leaderboard_right - _base_leaderboard_left
+		var base_height := _base_leaderboard_bottom - _base_leaderboard_top
+		var new_width := clampf(base_width * scale_factor, base_width, get_viewport().get_visible_rect().size.x * 0.75)
+		var new_height := clampf(base_height * scale_factor, base_height, get_viewport().get_visible_rect().size.y * 0.45)
+		leaderboard_panel.offset_right = _base_leaderboard_right
+		leaderboard_panel.offset_left = leaderboard_panel.offset_right - new_width
+		leaderboard_panel.offset_top = _base_leaderboard_top
+		leaderboard_panel.offset_bottom = leaderboard_panel.offset_top + new_height
+
+	if congrats_label != null and leaderboard_panel != null:
+		var base_congrats_height := _base_congrats_bottom - _base_congrats_top
+		congrats_label.offset_right = leaderboard_panel.offset_right
+		congrats_label.offset_left = leaderboard_panel.offset_left
+		congrats_label.offset_top = leaderboard_panel.offset_bottom + 12.0
+		congrats_label.offset_bottom = congrats_label.offset_top + clampf(base_congrats_height * scale_factor, base_congrats_height, 140.0)
 
 func _level_up_difficulty() -> void:
 	_current_speed += speed_increase_per_level
