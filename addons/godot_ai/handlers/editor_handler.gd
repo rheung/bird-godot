@@ -28,7 +28,6 @@ func _init(log_buffer: McpLogBuffer, connection: McpConnection = null, debugger_
 
 func get_editor_state(_params: Dictionary) -> Dictionary:
 	var scene_root := EditorInterface.get_edited_scene_root()
-	var game_status := _current_game_status()
 	var data := {
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
 		"project_name": ProjectSettings.get_setting("application/config/name", ""),
@@ -39,9 +38,6 @@ func get_editor_state(_params: Dictionary) -> Dictionary:
 		## false between Play→Stop cycles. Lets capture-source=game callers
 		## poll for a real ready signal instead of guessing with sleep().
 		"game_capture_ready": _debugger_plugin != null and _debugger_plugin.is_game_capture_ready(),
-		"game_status": game_status,
-		"helper_live": bool(game_status.get("helper_live", false)),
-		"session_active": bool(game_status.get("session_active", false)),
 	}
 	## Half-installed addon tree from a failed self-update rollback. When
 	## non-empty, the agent / dock paint the operator-facing recovery copy
@@ -74,9 +70,6 @@ func get_logs(params: Dictionary) -> Dictionary:
 	var offset: int = maxi(0, int(params.get("offset", 0)))
 	var source: String = str(params.get("source", "plugin"))
 	var include_details: bool = bool(params.get("include_details", false))
-	var has_since_cursor := params.has("since_cursor") and params.get("since_cursor") != null
-	var since_cursor: int = maxi(0, int(params.get("since_cursor", 0)))
-	var since_run_id := "" if params.get("since_run_id", null) == null else str(params.get("since_run_id", ""))
 	if not source in VALID_LOG_SOURCES:
 		return ErrorCodes.make(
 			ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -87,23 +80,12 @@ func get_logs(params: Dictionary) -> Dictionary:
 		"plugin":
 			return _get_plugin_logs(count, offset)
 		"game":
-			return _get_game_logs(count, offset, include_details, since_run_id)
+			return _get_game_logs(count, offset, include_details)
 		"editor":
-			return _get_editor_logs(count, offset, include_details, has_since_cursor, since_cursor)
+			return _get_editor_logs(count, offset, include_details)
 		"all":
 			return _get_all_logs(count, offset, include_details)
 	return ErrorCodes.make(ErrorCodes.INTERNAL_ERROR, "Unreachable")
-
-
-func _current_game_status() -> Dictionary:
-	if _debugger_plugin == null:
-		return McpDebuggerPlugin.with_liveness_flags({
-			"status": "stopped",
-			"active": false,
-			"ready": false,
-			"helper_expected": true,
-		})
-	return _debugger_plugin.get_game_status()
 
 
 func _get_plugin_logs(count: int, offset: int) -> Dictionary:
@@ -123,10 +105,7 @@ func _get_plugin_logs(count: int, offset: int) -> Dictionary:
 	}
 
 
-func _get_game_logs(count: int, offset: int, include_details: bool, since_run_id: String = "") -> Dictionary:
-	var game_status := _current_game_status()
-	var helper_live := bool(game_status.get("helper_live", false))
-	var session_active := bool(game_status.get("session_active", false))
+func _get_game_logs(count: int, offset: int, include_details: bool) -> Dictionary:
 	if _game_log_buffer == null:
 		return {
 			"data": {
@@ -136,51 +115,34 @@ func _get_game_logs(count: int, offset: int, include_details: bool, since_run_id
 				"returned_count": 0,
 				"offset": offset,
 				"run_id": "",
-				"current_run_id": "",
-				"is_running": session_active,
-				"helper_live": helper_live,
-				"session_active": session_active,
-				"game_status": game_status,
+				"is_running": false,
 				"dropped_count": 0,
-				"stale_run_id": false,
 			}
 		}
-	var current_run_id := _game_log_buffer.run_id()
-	var target_run_id := since_run_id if not since_run_id.is_empty() else current_run_id
-	var stale_run_id := not since_run_id.is_empty() and since_run_id != current_run_id
-	var run_page := _game_log_buffer.get_run_page(target_run_id, offset, count)
-	var page := _entries_for_response(run_page.get("entries", []), include_details)
+	var page := _entries_for_response(_game_log_buffer.get_range(offset, count), include_details)
 	return {
 		"data": {
 			"source": "game",
 			"lines": page,
-			"total_count": int(run_page.get("total_count", 0)),
+			"total_count": _game_log_buffer.total_count(),
 			"returned_count": page.size(),
 			"offset": offset,
-			"run_id": target_run_id,
-			"current_run_id": current_run_id,
-			"is_running": session_active,
-			"helper_live": helper_live,
-			"session_active": session_active,
-			"game_status": game_status,
+			"run_id": _game_log_buffer.run_id(),
+			"is_running": EditorInterface.is_playing_scene(),
 			"dropped_count": _game_log_buffer.dropped_count(),
-			"stale_run_id": stale_run_id,
 		}
 	}
 
 
-func _get_editor_logs(count: int, offset: int, include_details: bool, has_since_cursor: bool = false, since_cursor: int = 0) -> Dictionary:
+func _get_editor_logs(count: int, offset: int, include_details: bool) -> Dictionary:
 	## Editor-process script errors (parse errors, @tool runtime errors,
 	## EditorPlugin errors, push_error/push_warning). Captured by
 	## editor_logger.gd via OS.add_logger and gated on Godot 4.5+; on older
 	## engines the buffer can be null. Godot also sends GDScript reload
 	## warnings/errors straight to the Debugger dock's Errors tab; those do
 	## not flow through OS.add_logger, so merge the visible tree rows here.
-	if has_since_cursor:
-		return _get_editor_logs_since(count, since_cursor, include_details)
 	var all_entries := _collect_editor_log_entries()
 	var page := _entries_for_response(_slice_entries(all_entries, offset, count), include_details)
-	var appended_total := _editor_log_buffer.appended_total() if _editor_log_buffer != null else 0
 	return {
 		"data": {
 			"source": "editor",
@@ -189,45 +151,6 @@ func _get_editor_logs(count: int, offset: int, include_details: bool, has_since_
 			"returned_count": page.size(),
 			"offset": offset,
 			"dropped_count": _editor_log_buffer.dropped_count() if _editor_log_buffer != null else 0,
-			"next_cursor": appended_total,
-			"appended_total": appended_total,
-		}
-	}
-
-
-func _get_editor_logs_since(count: int, since_cursor: int, include_details: bool) -> Dictionary:
-	## Cursor reads are defined over the monotonic editor logger ring only.
-	## Visible Debugger Errors-tab rows are live UI state, not ring entries,
-	## so regular offset reads still merge them while since_cursor polling
-	## reports only Logger-backed entries.
-	var captured := {
-		"cursor": since_cursor,
-		"oldest_cursor": 0,
-		"next_cursor": 0,
-		"appended_total": 0,
-		"truncated": false,
-		"has_more": false,
-		"entries": [],
-	}
-	var dropped := 0
-	if _editor_log_buffer != null:
-		captured = _editor_log_buffer.get_since(since_cursor, count)
-		dropped = _editor_log_buffer.dropped_count()
-	var page := _entries_for_response(captured.get("entries", []), include_details)
-	return {
-		"data": {
-			"source": "editor",
-			"lines": page,
-			"total_count": int(captured.get("appended_total", 0)),
-			"returned_count": page.size(),
-			"offset": 0,
-			"dropped_count": dropped,
-			"cursor": int(captured.get("cursor", since_cursor)),
-			"oldest_cursor": int(captured.get("oldest_cursor", 0)),
-			"next_cursor": int(captured.get("next_cursor", 0)),
-			"appended_total": int(captured.get("appended_total", 0)),
-			"truncated": bool(captured.get("truncated", false)),
-			"has_more": bool(captured.get("has_more", false)),
 		}
 	}
 
@@ -244,24 +167,21 @@ func _get_all_logs(count: int, offset: int, include_details: bool) -> Dictionary
 		combined.append({"source": "plugin", "level": "info", "text": line})
 	for entry in _collect_editor_log_entries():
 		combined.append(entry)
-	var run_id := ""
-	var current_run_id := ""
-	var dropped := 0
 	if _game_log_buffer != null:
-		run_id = _game_log_buffer.run_id()
-		current_run_id = run_id
-		dropped = _game_log_buffer.dropped_count()
-		var run_page := _game_log_buffer.get_run_page(run_id, 0, McpGameLogBuffer.MAX_LINES)
-		for entry in run_page.get("entries", []):
+		for entry in _game_log_buffer.get_range(0, _game_log_buffer.total_count()):
 			combined.append(entry)
 	var stop := mini(combined.size(), offset + count)
 	var page: Array[Dictionary] = []
 	for i in range(mini(offset, combined.size()), stop):
 		page.append(combined[i])
 	page = _entries_for_response(page, include_details)
+	var run_id := ""
+	var dropped := 0
+	if _game_log_buffer != null:
+		run_id = _game_log_buffer.run_id()
+		dropped = _game_log_buffer.dropped_count()
 	if _editor_log_buffer != null:
 		dropped += _editor_log_buffer.dropped_count()
-	var game_status := _current_game_status()
 	return {
 		"data": {
 			"source": "all",
@@ -270,11 +190,7 @@ func _get_all_logs(count: int, offset: int, include_details: bool) -> Dictionary
 			"returned_count": page.size(),
 			"offset": offset,
 			"run_id": run_id,
-			"current_run_id": current_run_id,
-			"is_running": bool(game_status.get("session_active", false)),
-			"helper_live": bool(game_status.get("helper_live", false)),
-			"session_active": bool(game_status.get("session_active", false)),
-			"game_status": game_status,
+			"is_running": EditorInterface.is_playing_scene(),
 			"dropped_count": dropped,
 		}
 	}
